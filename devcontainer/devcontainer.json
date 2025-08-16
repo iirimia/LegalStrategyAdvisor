@@ -1,0 +1,22 @@
+{
+  "name": "LegalStrategyAdvisor",
+  "dockerFile": "Dockerfile",
+  "context": "..",
+  "appPort": [
+    "5199",
+    "8001",
+    "4200"
+  ],
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": [
+    "ms-dotnettools.csharp",
+    "ms-python.python",
+    "ms-azuretools.vscode-docker",
+    "esbenp.prettier-vscode",
+    "angular.ng-template"
+  ],
+  "postCreateCommand": "dotnet restore Api/LegalStrategyAdvisor.Api.csproj && pip install -r AiService/requirements.txt && npm install --prefix Frontend",
+  "remoteUser": "vscode"
+}

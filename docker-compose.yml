@@ -1,0 +1,50 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: legal_strategy
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: ./Api/Dockerfile
+    depends_on:
+      - postgres
+      - ai
+    environment:
+      POSTGRES_CONNECTION: Host=postgres;Port=5432;Database=legal_strategy;Username=postgres;Password=postgres
+      AI_SERVICE_URL: http://ai:8001
+      ASPNETCORE_URLS: http://+:5199
+    ports:
+      - "5199:5199"
+
+  ai:
+    build: ./AiService
+    environment:
+      MODEL_PROVIDER: fake
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "8001:8001"
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4200:4200"
+    depends_on:
+      - api
+    environment:
+      API_URL: http://api:5199
+
+networks:
+  default:
+    driver: bridge

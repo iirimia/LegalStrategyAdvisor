@@ -1,0 +1,238 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  NODE_VERSION: '20.x'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test-api:
+    name: Test .NET API
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: legal_strategy_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release --verbosity normal
+      env:
+        ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=legal_strategy_test;Username=postgres;Password=postgres
+
+  test-ai-service:
+    name: Test Python AI Service
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        cd AiService
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio httpx
+    
+    - name: Run tests
+      run: |
+        cd AiService
+        pytest -v
+      env:
+        MODEL_PROVIDER: fake
+
+  test-frontend:
+    name: Test Angular Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: Frontend/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd Frontend
+        npm ci
+    
+    - name: Build
+      run: |
+        cd Frontend
+        npm run build
+    
+    - name: Run tests
+      run: |
+        cd Frontend
+        npm test -- --watch=false --browsers=ChromeHeadless
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  build-containers:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build API image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: Api/Dockerfile
+        push: false
+        tags: legal-strategy-api:latest
+    
+    - name: Build AI Service image
+      uses: docker/build-push-action@v5
+      with:
+        context: AiService
+        file: AiService/Dockerfile
+        push: false
+        tags: legal-strategy-ai:latest
+    
+    - name: Build Frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: Frontend
+        file: Frontend/Dockerfile
+        push: false
+        tags: legal-strategy-frontend:latest
+# # file: .github/workflows/ci.yml
+# name: CI
+
+# on:
+#   push:
+#     branches:
+#       - main
+#   pull_request:
+#     branches:
+#       - main
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     services:
+#       postgres:
+#         image: postgres:15
+#         env:
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_DB: legal_strategy
+#         ports:
+#           - 5432:5432
+#         options: >-
+#           --health-cmd="pg_isready -U postgres"
+#           --health-interval=5s
+#           --health-timeout=5s
+#           --health-retries=10
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v2
+
+#       - name: Set up .NET
+#         uses: actions/setup-dotnet@v1
+#         with:
+#           dotnet-version: '8.0.x'
+
+#       - name: Restore .NET dependencies
+#         run: dotnet restore LegalStrategyAdvisor.sln
+
+#       - name: Build .NET project
+#         run: dotnet build LegalStrategyAdvisor.sln --configuration Release --no-restore
+
+#       - name: Run EF migrations
+#         run: dotnet ef database update --project Api
+
+#       - name: Set up Python
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: '3.11'
+
+#       - name: Install Python dependencies
+#         run: |
+#           cd AiService
+#           pip install -r requirements.txt
+
+#       - name: Run tests
+#         run: |
+#           dotnet test LegalStrategyAdvisor.sln --no-build --verbosity normal
+#           cd AiService
+#           pytest --maxfail=1 --disable-warnings -q
+
+#       - name: Build Docker images
+#         run: |
+#           docker-compose -f docker-compose.yml build
+
+#       - name: Run Docker containers
+#         run: |
+#           docker-compose -f docker-compose.yml up -d
+
+#       - name: Health check
+#         run: |
+#           sleep 10
+#           curl --retry 5 --retry-delay 5 --retry-connrefused http://localhost:5199/health
+#           curl --retry 5 --retry-delay 5 --retry-connrefused http://localhost:8001/health
+
+#       - name: Tear down Docker containers
+#         run: docker-compose -f docker-compose.yml down

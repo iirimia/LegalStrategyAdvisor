@@ -1,0 +1,14 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio solution minimal for VS Code usage
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalStrategyAdvisor.Api", "Api/LegalStrategyAdvisor.Api.csproj", "{C22C3F65-4B5F-4A54-9A9B-278E2C35A6B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalStrategyAdvisor.AiService", "AiService/LegalStrategyAdvisor.AiService.csproj", "{D22C3F65-4B5F-4A54-9A9B-278E2C35A6B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalStrategyAdvisor.Frontend", "Frontend/LegalStrategyAdvisor.Frontend.csproj", "{E22C3F65-4B5F-4A54-9A9B-278E2C35A6B7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalStrategyAdvisor.AppHost", "Aspire/AppHost/LegalStrategyAdvisor.AppHost.csproj", "{F22C3F65-4B5F-4A54-9A9B-278E2C35A6B8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalStrategyAdvisor.ServiceDefaults", "Aspire/ServiceDefaults/LegalStrategyAdvisor.ServiceDefaults.csproj", "{G22C3F65-4B5F-4A54-9A9B-278E2C35A6B9}"
+EndProject
+Global
+EndGlobal

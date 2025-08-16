@@ -1,0 +1,9 @@
+root = true
+
+[*.cs]
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_namespace_declarations = file_scoped:suggestion
+dotnet_diagnostic.IDE0060.severity = suggestion
+
+[*.py]
+indent_size = 4
